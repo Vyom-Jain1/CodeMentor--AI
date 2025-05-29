@@ -23,6 +23,7 @@ import {
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { codeAPI } from "../services/api";
+import { useSocket } from "../context/SocketProvider";
 
 // Debounce function to limit resize handler calls
 const debounce = (func, wait) => {
@@ -97,6 +98,7 @@ const CodeEditor = ({
   problemId = null,
   onSubmit = null,
   readOnly = false,
+  roomId,
 }) => {
   const [code, setCode] = useState(initialCode);
   const [language, setLanguage] = useState("python");
@@ -110,10 +112,22 @@ const CodeEditor = ({
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const socket = useSocket();
 
   useEffect(() => {
     setCode(initialCode);
   }, [initialCode]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit("joinRoom", roomId);
+    socket.on("codeUpdate", (newCode) => {
+      setCode(newCode);
+    });
+    return () => {
+      socket.off("codeUpdate");
+    };
+  }, [socket, roomId]);
 
   const handleEditorDidMount = (editor, monaco) => {
     setEditorMounted(true);
@@ -146,8 +160,9 @@ const CodeEditor = ({
     setTheme(theme === "vs-dark" ? "light" : "vs-dark");
   };
 
-  const handleEditorChange = (value) => {
-    setCode(value);
+  const handleChange = (newCode) => {
+    setCode(newCode);
+    socket.emit("codeChange", { roomId, code: newCode });
   };
 
   const handleInputChange = (event) => {
@@ -296,7 +311,7 @@ const CodeEditor = ({
           language={language}
           theme={theme}
           value={code}
-          onChange={handleEditorChange}
+          onChange={handleChange}
           onMount={handleEditorDidMount}
           options={{
             minimap: { enabled: true },

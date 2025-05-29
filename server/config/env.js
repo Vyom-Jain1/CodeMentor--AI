@@ -10,6 +10,17 @@ const validateEnv = () => {
       process.env.OPENAI_API_URL ||
       "https://api.openai.com/v1/chat/completions",
     OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+    AI_PROVIDER: process.env.AI_PROVIDER || "ollama",
+    OLLAMA_API_URL:
+      process.env.OLLAMA_API_URL || "http://localhost:11434/api/generate",
+    OLLAMA_MODEL: process.env.OLLAMA_MODEL || "codellama:7b",
+    HF_API_KEY: process.env.HF_API_KEY,
+    HF_API_URL:
+      process.env.HF_API_URL ||
+      "https://api-inference.huggingface.co/models/bigcode/starcoder",
+    CODE_EXECUTION_PROVIDER: process.env.CODE_EXECUTION_PROVIDER || "piston",
+    PISTON_API_URL:
+      process.env.PISTON_API_URL || "https://emkc.org/api/v2/piston/execute",
   };
 
   const missingVars = Object.entries(requiredEnvVars)

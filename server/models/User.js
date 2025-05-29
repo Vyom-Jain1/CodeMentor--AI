@@ -44,6 +44,26 @@ const UserSchema = new mongoose.Schema({
       type: Number,
       default: 0,
     },
+    streak: {
+      daily: { type: Number, default: 0 },
+      weekly: { type: Number, default: 0 },
+      lastActivity: { type: Date },
+    },
+    submissionHistory: [
+      {
+        problem: { type: mongoose.Schema.Types.ObjectId, ref: "Problem" },
+        submittedAt: { type: Date, default: Date.now },
+        result: { type: String, enum: ["success", "fail", "partial"] },
+        timeSpent: { type: Number }, // in seconds
+      },
+    ],
+    achievements: [
+      {
+        badge: String,
+        description: String,
+        achievedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   createdAt: {
     type: Date,

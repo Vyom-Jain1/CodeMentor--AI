@@ -8,6 +8,8 @@ const validateEnv = require("./config/env");
 const asyncHandler = require("./middleware/async");
 const errorHandler = require("./middleware/errorHandler");
 const path = require("path");
+const compression = require("compression");
+const helmet = require("helmet");
 
 // Load environment variables
 const result = dotenv.config();
@@ -35,6 +37,8 @@ app.use(express.json());
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
+app.use(compression());
+app.use(helmet());
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -73,6 +77,40 @@ if (process.env.NODE_ENV !== "test") {
       `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
     );
   });
+
+  // --- Socket.io Real-time Collaboration ---
+  const { Server } = require("socket.io");
+  const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+  });
+
+  io.on("connection", (socket) => {
+    console.log("A user connected: " + socket.id);
+
+    // Join a collaboration room
+    socket.on("joinRoom", (roomId) => {
+      socket.join(roomId);
+      socket.to(roomId).emit("userJoined", socket.id);
+    });
+
+    // Handle code changes
+    socket.on("codeChange", ({ roomId, code }) => {
+      socket.to(roomId).emit("codeUpdate", code);
+    });
+
+    // Handle chat messages (optional)
+    socket.on("chatMessage", ({ roomId, message }) => {
+      socket.to(roomId).emit("chatMessage", { user: socket.id, message });
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected: " + socket.id);
+    });
+  });
+  // --- End Socket.io ---
 
   // Handle unhandled promise rejections
   process.on("unhandledRejection", (err) => {

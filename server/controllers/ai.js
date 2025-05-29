@@ -1,11 +1,13 @@
 const axios = require("axios");
 const Problem = require("../models/Problem");
 const mongoose = require("mongoose");
+const { getAIResponse } = require("../services/aiProviders");
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL =
   process.env.OPENAI_API_URL || "https://api.openai.com/v1/chat/completions";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-3.5-turbo";
+const AI_PROVIDER = process.env.AI_PROVIDER || "ollama";
 
 // Validate required environment variables
 const requiredEnvVars = {
@@ -19,52 +21,16 @@ Object.entries(requiredEnvVars).forEach(([name, value]) => {
   }
 });
 
-async function callOpenAI(messages, maxTokens = 500) {
-  if (!OPENAI_API_KEY) {
-    throw new Error(
-      "OpenAI API key is missing. Set OPENAI_API_KEY in your .env file."
-    );
+async function callAI(prompt, options = {}) {
+  // For OpenAI, pass messages array; for others, just prompt
+  if (AI_PROVIDER === "openai") {
+    const messages = options.messages || [
+      { role: "system", content: "You are a helpful coding assistant." },
+      { role: "user", content: prompt },
+    ];
+    return getAIResponse(AI_PROVIDER, prompt, { ...options, messages });
   }
-
-  try {
-    const response = await axios.post(
-      OPENAI_API_URL,
-      {
-        model: OPENAI_MODEL,
-        messages,
-        max_tokens: maxTokens,
-        temperature: 0.7,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.data?.choices?.[0]?.message?.content) {
-      throw new Error("Invalid response format from OpenAI API");
-    }
-
-    return response.data.choices[0].message.content.trim();
-  } catch (error) {
-    if (error.response) {
-      // OpenAI API error
-      const { status, data } = error.response;
-      throw new Error(
-        `OpenAI API Error (${status}): ${
-          data.error?.message || JSON.stringify(data)
-        }`
-      );
-    } else if (error.request) {
-      // Network error
-      throw new Error(
-        `Network error: Unable to reach OpenAI API - ${error.message}`
-      );
-    }
-    throw error;
-  }
+  return getAIResponse(AI_PROVIDER, prompt, options);
 }
 
 // @desc    Get AI hint for a problem
@@ -80,13 +46,7 @@ exports.getHint = async (req, res) => {
         .json({ success: false, error: "Problem not found" });
     }
     const prompt = `Given this coding problem:\nTitle: ${problem.title}\nDescription: ${problem.description}\nDifficulty: ${problem.difficulty}\nCategory: ${problem.category}\n\nProvide a helpful hint that guides the user towards the solution without giving away the answer. Focus on the key concepts and approach they should consider. Keep the response concise and clear.`;
-    const result = await callOpenAI(
-      [
-        { role: "system", content: "You are a helpful coding assistant." },
-        { role: "user", content: prompt },
-      ],
-      150
-    );
+    const result = await callAI(prompt, { maxTokens: 150 });
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -135,10 +95,7 @@ exports.explainCode = async (req, res) => {
     const prompt = `Given this coding problem:\nTitle: ${problem.title}\nDescription: ${problem.description}\n\nExplain this ${language} code in detail, breaking down how it works and its time/space complexity. Format the explanation with clear sections and use markdown for better readability:\n\n\
 ${code}\
 \nStructure the explanation as follows:\n1. Overview\n2. Time Complexity\n3. Space Complexity\n4. Key Concepts\n5. Step-by-Step Explanation`;
-    const result = await callOpenAI([
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: prompt },
-    ]);
+    const result = await callAI(prompt);
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -166,10 +123,7 @@ exports.optimizeCode = async (req, res) => {
     const prompt = `Given this coding problem:\nTitle: ${problem.title}\nDescription: ${problem.description}\n\nAnalyze this ${language} code and suggest optimizations to improve its performance, readability, and best practices:\n\n\
 ${code}\
 \nProvide specific suggestions with explanations.`;
-    const result = await callOpenAI([
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: prompt },
-    ]);
+    const result = await callAI(prompt);
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -189,13 +143,7 @@ exports.getSolution = async (req, res) => {
         .json({ success: false, error: "Problem not found" });
     }
     const prompt = `Given this DSA problem:\nTitle: ${problem.title}\nDescription: ${problem.description}\nDifficulty: ${problem.difficulty}\nCategory: ${problem.category}\n\nProvide a solution guide with:\n1. Problem Analysis\n   - Key points and constraints\n   - Edge cases to consider\n2. Optimal Solution\n   - Approach explanation\n   - Time Complexity: O()\n   - Space Complexity: O()\n   - Code implementation\n3. Similar Problems\n   - List of related problems\n   - Common patterns\n4. Interview Tips\n   - Key points to discuss\n   - Common follow-ups`;
-    const result = await callOpenAI(
-      [
-        { role: "system", content: "You are a helpful coding assistant." },
-        { role: "user", content: prompt },
-      ],
-      1000
-    );
+    const result = await callAI(prompt, { maxTokens: 1000 });
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -222,10 +170,7 @@ exports.getGuidance = async (req, res) => {
     }\nCategory: ${problem.category}\n\nProvide step ${
       parseInt(step) + 1
     } of the solution process. Focus on one clear step that helps the user progress towards solving the problem.`;
-    const result = await callOpenAI([
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: prompt },
-    ]);
+    const result = await callAI(prompt);
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -257,13 +202,7 @@ exports.visualizeCode = async (req, res) => {
     }\n\nVisualize the execution of this ${language} code with the given input:\n\n${code}\n\nInput: ${
       input || "No input provided"
     }\n\nShow step-by-step how the code executes, including variable values and program state at each step.`;
-    const result = await callOpenAI(
-      [
-        { role: "system", content: "You are a helpful coding assistant." },
-        { role: "user", content: prompt },
-      ],
-      1000
-    );
+    const result = await callAI(prompt, { maxTokens: 1000 });
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -289,17 +228,7 @@ exports.getOllamaResponse = async (req, res) => {
       });
     }
 
-    const result = await callOpenAI(
-      [
-        {
-          role: "system",
-          content:
-            "You are a helpful coding assistant specialized in providing clear, concise, and accurate responses.",
-        },
-        { role: "user", content: prompt },
-      ],
-      500
-    ); // Limiting token count for responses
+    const result = await callAI(prompt);
 
     res.status(200).json({
       success: true,
@@ -342,14 +271,7 @@ exports.chat = async (req, res) => {
     }
 
     const prompt = `${context}${message}`;
-    const result = await callOpenAI([
-      {
-        role: "system",
-        content:
-          "You are a helpful coding assistant. Provide clear, concise, and accurate responses. Use markdown formatting when appropriate for code snippets and explanations.",
-      },
-      { role: "user", content: prompt },
-    ]);
+    const result = await callAI(prompt);
 
     res.status(200).json({
       success: true,

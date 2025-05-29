@@ -22,6 +22,7 @@ import Dashboard from "./pages/Dashboard";
 import CodeEditorTest from "./components/CodeEditorTest";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { SocketProvider } from "./context/SocketProvider";
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -134,29 +135,31 @@ function App() {
   const theme = darkMode ? darkTheme : lightTheme;
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme={darkMode ? "dark" : "light"}
-        />
-        <Box sx={{ position: "fixed", top: 16, right: 16, zIndex: 1000 }}>
-          <IconButton onClick={toggleDarkMode} color="inherit">
-            {darkMode ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
-        </Box>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </ThemeProvider>
+    <SocketProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme={darkMode ? "dark" : "light"}
+          />
+          <Box sx={{ position: "fixed", top: 16, right: 16, zIndex: 1000 }}>
+            <IconButton onClick={toggleDarkMode} color="inherit">
+              {darkMode ? <Brightness7 /> : <Brightness4 />}
+            </IconButton>
+          </Box>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ThemeProvider>
+    </SocketProvider>
   );
 }
 
