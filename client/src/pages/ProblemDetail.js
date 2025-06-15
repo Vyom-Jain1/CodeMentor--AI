@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -11,122 +11,334 @@ import {
   Alert,
   Tabs,
   Tab,
+  Chip,
+  Divider,
+  IconButton,
+  Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  Collapse,
 } from "@mui/material";
+import {
+  ArrowBack as ArrowBackIcon,
+  Timer as TimerIcon,
+  Memory as MemoryIcon,
+  Code as CodeIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Lightbulb as LightbulbIcon,
+  CheckCircle,
+} from "@mui/icons-material";
 import CodeEditor from "../components/CodeEditor";
 import AIAssistant from "../components/AIAssistant";
 import DiscussionForum from "../components/DiscussionForum";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { problemsAPI } from "../services/api";
 import { executeCode } from "../services/codeExecutionService";
 
 const ProblemDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const [problem, setProblem] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [userCode, setUserCode] = useState("");
-  const [language, setLanguage] = useState("javascript");
-  const [activeTab, setActiveTab] = useState(0);
-  const [submissionResult, setSubmissionResult] = useState(null);
-  const [runResult, setRunResult] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
 
-  const fetchProblem = useCallback(async () => {
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case "easy":
+        return "success";
+      case "medium":
+        return "warning";
+      case "hard":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const [state, setState] = useState({
+    problem: null,
+    loading: true,
+    error: null,
+    userCode: "",
+    language: "javascript",
+    activeTab: 0,
+    submissionResult: null,
+    runResult: null,
+    isRunning: false,
+    showHints: false,
+    showSolution: false,
+    showApproach: false,
+    testCases: [],
+    submissions: [],
+    progress: {
+      attemptsCount: 0,
+      passedTestsCount: 0,
+      lastSubmissionTime: null,
+      timeSpent: 0,
+    },
+    aiAnalysis: null,
+    discussions: [],
+    bookmarked: false,
+    notes: "",
+  });
+
+  const updateState = useCallback((updates) => {
+    setState((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  const fetchProblemData = useCallback(async () => {
     try {
-      setLoading(true);
-      const response = await problemsAPI.getProblem(id);
-      setProblem(response.data.data);
-      const starter = response.data.data.starterCode;
-      setUserCode(
-        typeof starter === "string"
-          ? starter
-          : starter && starter[language]
-          ? starter[language]
-          : ""
-      );
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to fetch problem");
-    } finally {
-      setLoading(false);
-    }
-  }, [id, language]);
+      updateState({ loading: true, error: null });
 
-  useEffect(() => {
-    fetchProblem();
-  }, [fetchProblem]);
+      const [
+        problemResponse,
+        submissionsResponse,
+        progressResponse,
+        discussionsResponse,
+      ] = await Promise.all([
+        problemsAPI.getProblem(id),
+        problemsAPI.getUserSubmissions(id),
+        problemsAPI.getProblemProgress(id),
+        problemsAPI.getProblemDiscussions(id),
+      ]);
 
-  useEffect(() => {
-    if (problem && problem.starterCode) {
+      if (problemResponse.error) {
+        throw new Error(problemResponse.error);
+      }
+
+      const problem = problemResponse.data;
       const starter = problem.starterCode;
-      setUserCode(
-        typeof starter === "string" ? starter : starter[language] || ""
-      );
+      const userCode =
+        typeof starter === "string" ? starter : starter?.[state.language] || "";
+
+      updateState({
+        problem,
+        userCode,
+        testCases: problem.testCases || [],
+        submissions: submissionsResponse.data || [],
+        progress: progressResponse.data || {
+          attemptsCount: 0,
+          passedTestsCount: 0,
+          lastSubmissionTime: null,
+          timeSpent: 0,
+        },
+        discussions: discussionsResponse.data || [],
+        loading: false,
+      });
+
+      // Start tracking time spent
+      startTimeTracking();
+    } catch (err) {
+      console.error("Error fetching problem data:", err);
+      updateState({
+        error: err.message || "Failed to fetch problem data",
+        loading: false,
+      });
     }
-  }, [language, problem]);
+  }, [id, state.language, updateState]);
+
+  const startTimeTracking = useCallback(() => {
+    const interval = setInterval(() => {
+      updateState((prev) => ({
+        progress: {
+          ...prev.progress,
+          timeSpent: prev.progress.timeSpent + 1,
+        },
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [updateState]);
+
+  useEffect(() => {
+    fetchProblemData();
+
+    // Cleanup function to save progress
+    return () => {
+      if (state.problem && state.progress.timeSpent > 0) {
+        problemsAPI
+          .updateProblemProgress(id, {
+            timeSpent: state.progress.timeSpent,
+            submissionCount: state.progress.attemptsCount,
+          })
+          .catch(console.error);
+      }
+    };
+  }, [fetchProblemData, id, state.problem, state.progress]);
+
+  // Update code when language changes
+  useEffect(() => {
+    if (state.problem?.starterCode) {
+      const starter = state.problem.starterCode;
+      const newCode =
+        typeof starter === "string" ? starter : starter[state.language] || "";
+      updateState({ userCode: newCode });
+    }
+  }, [state.language, state.problem, updateState]);
+
+  // Save code to local storage
+  useEffect(() => {
+    if (state.userCode && id) {
+      localStorage.setItem(`code_${id}_${state.language}`, state.userCode);
+    }
+  }, [state.userCode, id, state.language]);
+
+  // Load code from local storage
+  useEffect(() => {
+    const savedCode = localStorage.getItem(`code_${id}_${state.language}`);
+    if (savedCode) {
+      updateState({ userCode: savedCode });
+    }
+  }, [id, state.language, updateState]);
 
   const handleSubmit = async () => {
-    if (typeof userCode !== "string" || !userCode.trim()) return;
+    if (typeof state.userCode !== "string" || !state.userCode.trim()) {
+      updateState({ error: "Please write some code before submitting" });
+      return;
+    }
+
     try {
-      setLoading(true);
-      setError(null);
-      setSubmissionResult(null);
+      updateState({ loading: true, error: null, submissionResult: null });
+
+      // Submit solution
       const response = await problemsAPI.submitSolution(id, {
-        code: userCode,
-        language,
+        code: state.userCode,
+        language: state.language,
       });
-      setSubmissionResult(response.data);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Update state with results
+      updateState({
+        submissionResult: response.data,
+        progress: {
+          ...state.progress,
+          attemptsCount: state.progress.attemptsCount + 1,
+          passedTestsCount: response.data.success
+            ? state.progress.passedTestsCount + 1
+            : state.progress.passedTestsCount,
+          lastSubmissionTime: new Date().toISOString(),
+        },
+        submissions: [response.data, ...state.submissions],
+      });
+
+      // Show success message
       if (response.data.success) {
-        setError(null);
-      } else {
-        setError(response.data.error || "Failed to submit solution");
+        // Get AI analysis of the successful solution
+        const analysisResponse = await problemsAPI.getAIAnalysis(
+          id,
+          state.userCode,
+          state.language
+        );
+        if (!analysisResponse.error) {
+          updateState({ aiAnalysis: analysisResponse.data });
+        }
+
+        // Update user progress
+        await problemsAPI.updateProblemProgress(id, {
+          solved: true,
+          timeSpent: state.progress.timeSpent,
+          submissionCount: state.progress.attemptsCount,
+        });
       }
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to submit solution");
+      console.error("Error submitting solution:", err);
+      updateState({
+        error: err.message || "Failed to submit solution",
+        submissionResult: null,
+      });
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
   const handleRunCode = async () => {
-    if (typeof userCode !== "string" || !userCode.trim()) return;
+    if (typeof state.userCode !== "string" || !state.userCode.trim()) {
+      updateState({ error: "Please write some code before running" });
+      return;
+    }
+
     try {
-      setIsRunning(true);
-      setRunResult(null);
-      const response = await executeCode(
-        userCode,
-        language,
-        problem.testCases || []
-      );
-      setRunResult(response);
+      updateState({ isRunning: true, runResult: null, error: null });
+
+      // Run code with test cases
+      const response = await executeCode({
+        code: state.userCode,
+        language: state.language,
+        testCases: state.testCases,
+        timeLimit: state.problem.timeLimit,
+        memoryLimit: state.problem.memoryLimit,
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Update state with results
+      updateState({
+        runResult: {
+          output: response.output,
+          testResults: response.testResults,
+          executionTime: response.stats?.executionTime,
+          memoryUsed: response.stats?.memoryUsed,
+          status: response.success ? "success" : "failed",
+        },
+      });
+
+      // If there are errors, get AI help
+      if (!response.success && response.error) {
+        const debugResponse = await problemsAPI.getAIDebug(
+          id,
+          state.userCode,
+          state.language,
+          response.error
+        );
+        if (!debugResponse.error) {
+          updateState({ aiAnalysis: debugResponse.data });
+        }
+      }
     } catch (err) {
-      setRunResult({ error: err.message || "Failed to run code" });
+      console.error("Error running code:", err);
+      updateState({
+        runResult: { error: err.message || "Failed to run code" },
+        error: err.message || "Failed to run code",
+      });
     } finally {
-      setIsRunning(false);
+      updateState({ isRunning: false });
     }
   };
 
   const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+    updateState({ activeTab: newValue });
   };
 
-  if (loading) {
+  if (state.loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (error) {
+  if (state.error) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
       </Container>
     );
   }
 
-  if (!problem) {
+  if (!state.problem) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Alert severity="info">Problem not found</Alert>
@@ -135,98 +347,207 @@ const ProblemDetail = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>
-              {problem.title}
-            </Typography>
-            <Typography variant="body1" paragraph>
-              {problem.description}
-            </Typography>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Difficulty: {problem.difficulty}
-              </Typography>
-              <Typography variant="subtitle2" color="text.secondary">
-                Category: {problem.category}
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2, height: "100%" }}>
-            <CodeEditor
-              code={typeof userCode === "string" ? userCode : ""}
-              language={language}
-              onChange={setUserCode}
-              onLanguageChange={setLanguage}
-            />
-            <Box sx={{ mt: 2 }}>
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
-              {submissionResult && submissionResult.success && (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  Solution submitted successfully!
-                </Alert>
-              )}
-              <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleRunCode}
-                  disabled={
-                    typeof userCode !== "string" ||
-                    !userCode.trim() ||
-                    isRunning
-                  }
-                  aria-label="Run code"
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {state.loading ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "60vh",
+          }}>
+          <CircularProgress />
+        </Box>
+      ) : state.error ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
+      ) : (
+        <Grid container spacing={3}>
+          {/* Problem Header */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <IconButton
+                  onClick={() => navigate("/problems")}
                   sx={{ mr: 2 }}>
-                  {isRunning ? (
-                    <CircularProgress size={24} aria-hidden="true" />
-                  ) : (
-                    "Run Code"
-                  )}
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  onClick={handleSubmit}
-                  disabled={loading}>
-                  Submit Solution
-                </Button>
+                  <ArrowBackIcon />
+                </IconButton>
+                <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
+                  {state.problem?.title}
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Chip
+                    label={state.problem?.difficulty}
+                    color={getDifficultyColor(state.problem?.difficulty)}
+                    size="small"
+                  />
+                  <Chip
+                    label={state.problem?.category}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Box>
               </Box>
-            </Box>
-          </Paper>
-        </Grid>
+              <Typography variant="body1" component="div" sx={{ mb: 2 }}>
+                {state.problem?.description}
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                <Tooltip title="Time Complexity">
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <TimerIcon sx={{ mr: 0.5 }} />
+                    <Typography variant="body2">
+                      {state.problem?.timeComplexity || "O(n)"}
+                    </Typography>
+                  </Box>
+                </Tooltip>
+                <Tooltip title="Space Complexity">
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <MemoryIcon sx={{ mr: 0.5 }} />
+                    <Typography variant="body2">
+                      {state.problem?.spaceComplexity || "O(1)"}
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </Box>
+            </Paper>
+          </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Paper
-            sx={{
-              p: 2,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-            }}>
-            <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 2 }}>
-              <Tab label="AI Assistant" />
-              <Tab label="Discussion" />
-            </Tabs>
-            <Box sx={{ flexGrow: 1, minHeight: "70vh", overflow: "auto" }}>
-              {activeTab === 0 ? (
-                <AIAssistant problemId={id} />
-              ) : (
-                <DiscussionForum problemId={id} />
-              )}
-            </Box>
-          </Paper>
+          {/* Main Content */}
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 3 }}>
+              <Tabs value={state.activeTab} onChange={handleTabChange}>
+                <Tab label="Code" />
+                <Tab label="Discussion" />
+                <Tab label="Submissions" />
+              </Tabs>
+              <Box sx={{ mt: 2 }}>
+                {state.activeTab === 0 && (
+                  <Box>
+                    <CodeEditor
+                      code={state.userCode}
+                      language={state.language}
+                      onChange={(code) => updateState({ userCode: code })}
+                      onLanguageChange={(language) => updateState({ language })}
+                    />
+                    <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleRunCode}
+                        disabled={state.isRunning}
+                        startIcon={<CodeIcon />}>
+                        Run Code
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleSubmit}
+                        disabled={state.loading}
+                        startIcon={<CheckCircle />}>
+                        Submit
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+                {state.activeTab === 1 && (
+                  <DiscussionForum
+                    problemId={id}
+                    discussions={state.discussions}
+                    onDiscussionAdded={(discussion) =>
+                      updateState({
+                        discussions: [discussion, ...state.discussions],
+                      })
+                    }
+                  />
+                )}
+                {state.activeTab === 2 && (
+                  <Box>
+                    <List>
+                      {state.submissions.map((submission, index) => (
+                        <React.Fragment key={submission.id || index}>
+                          <ListItem>
+                            <ListItemText
+                              primary={
+                                <Box
+                                  component="div"
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}>
+                                  <Typography variant="body1">
+                                    Submission #{index + 1}
+                                  </Typography>
+                                  <Chip
+                                    label={submission.status}
+                                    color={
+                                      submission.status === "accepted"
+                                        ? "success"
+                                        : "error"
+                                    }
+                                    size="small"
+                                  />
+                                </Box>
+                              }
+                              secondary={
+                                <Box component="div" sx={{ mt: 1 }}>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary">
+                                    {new Date(
+                                      submission.timestamp
+                                    ).toLocaleString()}
+                                  </Typography>
+                                  {submission.error && (
+                                    <Typography variant="body2" color="error">
+                                      {submission.error}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              }
+                            />
+                          </ListItem>
+                          {index < state.submissions.length - 1 && <Divider />}
+                        </React.Fragment>
+                      ))}
+                    </List>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Sidebar */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Progress
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Attempts: {state.progress.attemptsCount}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Time Spent: {Math.floor(state.progress.timeSpent / 60)}{" "}
+                  minutes
+                </Typography>
+              </Box>
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                AI Assistant
+              </Typography>
+              <AIAssistant
+                problemId={id}
+                code={state.userCode}
+                language={state.language}
+              />
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
+      )}
     </Container>
   );
 };

@@ -14,8 +14,34 @@ const DiscussionSchema = new mongoose.Schema(
     problem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Problem",
-      required: true,
     },
+    likes: {
+      type: Number,
+      default: 0,
+    },
+    likedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    replies: [
+      {
+        content: {
+          type: String,
+          required: true,
+        },
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

@@ -41,22 +41,40 @@ const features = [
 
 const Home = () => {
   return (
-    <Container maxWidth="lg">
+    <Container
+      maxWidth="lg"
+      sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Hero Section */}
       <Box
         sx={{
-          mt: 8,
-          mb: 6,
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
           textAlign: "center",
+          minHeight: "60vh",
         }}>
         <Typography
           variant="h2"
           component="h1"
           gutterBottom
-          sx={{ fontWeight: "bold" }}>
+          sx={{
+            fontWeight: "bold",
+            fontSize: { xs: "2.5rem", md: "3.5rem" },
+            mb: 2,
+          }}>
           Welcome to CodeMentor
         </Typography>
-        <Typography variant="h5" color="text.secondary" paragraph>
+        <Typography
+          variant="h5"
+          color="text.secondary"
+          paragraph
+          sx={{
+            maxWidth: "800px",
+            mb: 4,
+            fontSize: { xs: "1.1rem", md: "1.5rem" },
+          }}>
           Your AI-powered companion for mastering Data Structures and Algorithms
         </Typography>
         <Button
@@ -65,13 +83,18 @@ const Home = () => {
           variant="contained"
           size="large"
           aria-label="Get started with CodeMentor"
-          sx={{ mt: 2 }}>
+          sx={{
+            mt: 2,
+            px: 4,
+            py: 1.5,
+            fontSize: "1.1rem",
+          }}>
           Get Started
         </Button>
       </Box>
 
       {/* Features Section */}
-      <Grid container spacing={4} sx={{ mb: 8 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         {features.map((feature, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Card
@@ -82,6 +105,10 @@ const Home = () => {
                 alignItems: "center",
                 textAlign: "center",
                 p: 2,
+                transition: "transform 0.2s",
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                },
               }}>
               <Box sx={{ color: "primary.main", mb: 2 }}>{feature.icon}</Box>
               <CardContent>
@@ -115,7 +142,7 @@ const Home = () => {
           p: 6,
           borderRadius: 2,
           textAlign: "center",
-          mb: 8,
+          mb: 4,
         }}>
         <Typography variant="h4" gutterBottom>
           Ready to Start Your DSA Journey?

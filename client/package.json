@@ -2,14 +2,15 @@
   "name": "codementor-client",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5000",
+  "proxy": "http://localhost:3001",
   "dependencies": {
     "@craco/craco": "^7.1.0",
-    "@emotion/react": "^11.11.0",
-    "@emotion/styled": "^11.11.0",
-    "@monaco-editor/react": "^4.5.1",
-    "@mui/icons-material": "^5.11.16",
-    "@mui/material": "^5.13.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@mui/icons-material": "^5.17.1",
+    "@mui/material": "^5.17.1",
+    "@reduxjs/toolkit": "^2.8.2",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -18,14 +19,16 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^8.0.7",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^6.11.1",
     "react-scripts": "5.0.1",
     "react-syntax-highlighter": "^15.5.0",
+    "react-toastify": "^11.0.5",
     "socket.io-client": "^4.7.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "craco start",
+    "start": "cross-env NODE_OPTIONS=--trace-deprecation craco start",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject"
@@ -52,6 +55,7 @@
     "date-fns": "^2.30.0"
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0"
+    "@craco/craco": "^7.1.0",
+    "cross-env": "^7.0.3"
   }
 }

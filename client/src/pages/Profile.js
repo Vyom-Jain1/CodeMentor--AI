@@ -29,7 +29,7 @@ import {
   Code as CodeIcon,
 } from "@mui/icons-material";
 import { authAPI } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const Profile = () => {
   const { user, updateUser } = useAuth();

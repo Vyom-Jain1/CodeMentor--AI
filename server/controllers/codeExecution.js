@@ -1,5 +1,5 @@
 const { runCode } = require("../services/codeExecutionProviders");
-const CODE_EXECUTION_PROVIDER = process.env.CODE_EXECUTION_PROVIDER || "piston";
+const CODE_EXECUTION_PROVIDER = "piston";  // Force Piston API for now
 
 // Controller methods
 exports.executeCode = async (req, res) => {

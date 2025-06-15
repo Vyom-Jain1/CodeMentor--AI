@@ -1,7 +1,7 @@
 const axios = require("axios");
 const Problem = require("../models/Problem");
 const mongoose = require("mongoose");
-const { getAIResponse } = require("../services/aiProviders");
+const aiProvider = require("../services/aiProvider");
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL =
@@ -22,15 +22,12 @@ Object.entries(requiredEnvVars).forEach(([name, value]) => {
 });
 
 async function callAI(prompt, options = {}) {
-  // For OpenAI, pass messages array; for others, just prompt
-  if (AI_PROVIDER === "openai") {
-    const messages = options.messages || [
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: prompt },
-    ];
-    return getAIResponse(AI_PROVIDER, prompt, { ...options, messages });
+  try {
+    return await aiProvider.generateCode(prompt);
+  } catch (error) {
+    console.error('Error calling AI:', error);
+    throw error;
   }
-  return getAIResponse(AI_PROVIDER, prompt, options);
 }
 
 // @desc    Get AI hint for a problem

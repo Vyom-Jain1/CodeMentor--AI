@@ -17,7 +17,11 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("token");
       if (token) {
         const { data } = await authAPI.getProfile();
-        setUser(data.data);
+        if (data.success) {
+          setUser(data.data);
+        } else {
+          localStorage.removeItem("token");
+        }
       }
     } catch (err) {
       console.error("Auth check failed:", err);
@@ -30,26 +34,62 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError(null);
+      setLoading(true);
       const { data } = await authAPI.login({ email, password });
-      localStorage.setItem("token", data.token);
-      await checkUser();
-      return data;
+      
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        setUser(data.data);
+        return data;
+      } else {
+        throw new Error(data.error || "Login failed");
+      }
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed");
-      throw err;
+      const errorMessage = err.response?.data?.error || err.message || "Login failed";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   const register = async (userData) => {
     try {
       setError(null);
+      setLoading(true);
       const { data } = await authAPI.register(userData);
-      localStorage.setItem("token", data.token);
-      await checkUser();
-      return data;
+      
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        setUser(data.data);
+        return data;
+      } else {
+        throw new Error(data.error || "Registration failed");
+      }
     } catch (err) {
-      setError(err.response?.data?.error || "Registration failed");
-      throw err;
+      const errorMessage = err.response?.data?.error || err.message || "Registration failed";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUser = async (updatedData) => {
+    try {
+      setError(null);
+      const { data } = await authAPI.updateProfile(updatedData);
+      
+      if (data.success) {
+        setUser(data.data);
+        return data;
+      } else {
+        throw new Error(data.error || "Update failed");
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || err.message || "Update failed";
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
@@ -61,6 +101,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       localStorage.removeItem("token");
       setUser(null);
+      setError(null);
     }
   };
 
@@ -71,7 +112,9 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateUser,
     isAuthenticated: !!user,
+    checkUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
