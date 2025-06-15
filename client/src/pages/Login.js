@@ -13,9 +13,6 @@ import {
   InputAdornment,
   IconButton,
 } from "@mui/material";
-<<<<<<< HEAD
-import { useAuth } from "../contexts/AuthContext";
-=======
 import {
   Visibility,
   VisibilityOff,
@@ -23,7 +20,6 @@ import {
   Lock as LockIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
 
 const Login = () => {
   const navigate = useNavigate();

@@ -14,9 +14,6 @@ import {
   InputAdornment,
   IconButton,
 } from "@mui/material";
-<<<<<<< HEAD
-import { useAuth } from "../contexts/AuthContext";
-=======
 import {
   Visibility,
   VisibilityOff,
@@ -25,7 +22,6 @@ import {
   Lock as LockIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
 
 const Register = () => {
   const navigate = useNavigate();
@@ -56,41 +52,6 @@ const Register = () => {
   };
 
   const validateForm = () => {
-<<<<<<< HEAD
-    if (!formData.name.trim()) {
-      setValidationError("Name is required");
-      return false;
-    }
-
-    if (!formData.email.trim()) {
-      setValidationError("Email is required");
-      return false;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setValidationError("Please enter a valid email address");
-      return false;
-    }
-
-    if (!formData.password) {
-      setValidationError("Password is required");
-      return false;
-    }
-
-    if (formData.password.length < 6) {
-      setValidationError("Password must be at least 6 characters long");
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setValidationError("Passwords do not match");
-      return false;
-    }
-
-    return true;
-=======
     const newErrors = {};
 
     if (!formData.name.trim()) {
@@ -119,7 +80,6 @@ const Register = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
   };
 
   const handleSubmit = async (e) => {
@@ -134,24 +94,8 @@ const Register = () => {
       await register(registerData);
       navigate("/dashboard");
     } catch (err) {
-<<<<<<< HEAD
-      // Handle validation errors from the backend
-      if (err.response?.data?.errors) {
-        const errorMessages = err.response.data.errors
-          .map((error) => error.msg)
-          .join(", ");
-        setValidationError(errorMessages);
-      } else if (err.response?.data?.error) {
-        setValidationError(err.response.data.error);
-      } else {
-        setValidationError(err.response?.data?.message || "Failed to register");
-      }
-    } finally {
-      setLoading(false);
-=======
       // Error is handled by AuthContext
       console.error("Registration failed:", err);
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
     }
   };
 

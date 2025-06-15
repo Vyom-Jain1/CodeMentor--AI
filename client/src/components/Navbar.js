@@ -1,439 +1,51 @@
 import React, { useState } from "react";
-<<<<<<< HEAD
-import { useThemeContext } from "../theme/ThemeProvider";
-import { useAuth } from "../contexts/AuthContext";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useTheme } from "@mui/material/styles";
-=======
 import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
 import {
   AppBar,
-  Box,
   Toolbar,
-  IconButton,
   Typography,
-  Menu,
-  MenuItem,
   Button,
+  IconButton,
+  Box,
+  useTheme,
+  useMediaQuery,
+  Drawer,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
-  Drawer,
+  ListItemIcon,
   Divider,
-<<<<<<< HEAD
-  Badge,
-  Avatar,
-  Tooltip,
-  useMediaQuery,
-  Container,
-  styled,
-  alpha,
-=======
   Avatar,
   Menu,
   MenuItem,
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Notifications as NotificationsIcon,
-  Person as PersonIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  SmartToy as SmartToyIcon,
-<<<<<<< HEAD
   Code as CodeIcon,
+  Person as PersonIcon,
   School as SchoolIcon,
-  Forum as ForumIcon,
-  Assessment as AssessmentIcon,
-  AccountCircle as AccountIcon,
-  Brightness4 as DarkIcon,
-  Brightness7 as LightIcon,
+  Logout as LogoutIcon,
+  Login as LoginIcon,
   Dashboard as DashboardIcon,
-=======
+  SmartToy as SmartToyIcon,
   Home as HomeIcon,
   Assignment as AssignmentIcon,
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
 } from "@mui/icons-material";
-import { keyframes } from "@mui/system";
-import ThemeToggle from "./ThemeToggle";
-
-const slideIn = keyframes`
-  from {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-`;
-
-const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: theme.spacing(8),
-  zIndex: theme.zIndex.appBar,
-  backdropFilter: "blur(20px)",
-  borderBottom: `1px solid ${
-    theme.palette.mode === "dark"
-      ? "rgba(255, 255, 255, 0.1)"
-      : "rgba(0, 0, 0, 0.1)"
-  }`,
-  boxShadow: "none",
-  transition: "all 0.3s ease",
-  display: "flex",
-  justifyContent: "center",
-}));
-
-const StyledToolbar = styled(Toolbar)(({ theme }) => ({
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: theme.spacing(0, 2),
-  [theme.breakpoints.up("sm")]: {
-    padding: theme.spacing(0, 3),
-  },
-}));
-
-const NavButton = styled(Button)(({ theme }) => ({
-  borderRadius: 12,
-  padding: "8px 16px",
-  textTransform: "none",
-  fontWeight: 600,
-  fontSize: "0.95rem",
-  transition: "all 0.3s ease",
-  color: theme.palette.text.primary,
-  "&:hover": {
-    transform: "translateY(-2px)",
-    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-  },
-  "&.active": {
-    color: theme.palette.primary.main,
-    backgroundColor: alpha(theme.palette.primary.main, 0.12),
-  },
-}));
-
-const LogoContainer = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  cursor: "pointer",
-  transition: "all 0.3s ease",
-  "&:hover": {
-    transform: "scale(1.05)",
-  },
-}));
-
-const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  cursor: "pointer",
-  transition: "all 0.3s ease",
-  border: `2px solid ${theme.palette.primary.main}`,
-  "&:hover": {
-    transform: "scale(1.1)",
-    boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.4)}`,
-  },
-}));
-
-const menuItems = [
-  { title: "Problems", icon: <CodeIcon />, path: "/problems" },
-  { title: "Learn", icon: <SchoolIcon />, path: "/learning" },
-  { title: "Discuss", icon: <ForumIcon />, path: "/discussions" },
-  {
-    title: "Interview Prep",
-    icon: <AssessmentIcon />,
-    path: "/learning/interview",
-  },
-];
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
-<<<<<<< HEAD
-  const navigate = useNavigate();
-  const { logout, currentUser } = useAuth();
-  const { toggleColorMode } = useThemeContext();
-=======
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
   const theme = useTheme();
-
-  // State for mobile drawer
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-
-  // State for user menu
-  const [anchorElUser, setAnchorElUser] = useState(null);
-
-  // State for notifications menu
-  const [notificationsAnchor, setNotificationsAnchor] = useState(null);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-<<<<<<< HEAD
-  const handleOpenUserMenu = (event) => {
-    setAnchorElUser(event.currentTarget);
-  };
-
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
-  };
-
-  const handleCloseNavMenu = () => {
-    setMobileOpen(false);
-  };
-
-  const handleNotificationsClose = () => {
-    setNotificationsAnchor(null);
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
-  return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <StyledAppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          animation: `${slideIn} 0.5s ease-out`,
-          background:
-            theme.palette.mode === "dark"
-              ? "rgba(17, 25, 40, 0.95)"
-              : "rgba(255, 255, 255, 0.95)",
-        }}>
-        <Container maxWidth="xl">
-          <Toolbar disableGutters>
-            {/* Logo for desktop */}
-            <LogoContainer
-              sx={{ display: { xs: "none", md: "flex" } }}
-              onClick={() => navigate("/")}>
-              <CodeIcon sx={{ fontSize: 32, color: "primary.main" }} />
-              <Typography
-                variant="h5"
-                noWrap
-                sx={{
-                  fontWeight: 700,
-                  background: "linear-gradient(45deg, #2563EB, #059669)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}>
-                CodeMentor AI
-              </Typography>
-            </LogoContainer>
-
-            {/* Mobile menu */}
-            <Box sx={{ display: { xs: "flex", md: "none" } }}>
-              <IconButton
-                size="large"
-                onClick={handleDrawerToggle}
-                color="inherit">
-                <MenuIcon />
-              </IconButton>
-            </Box>
-
-            {/* Logo for mobile */}
-            <LogoContainer
-              sx={{ display: { xs: "flex", md: "none" }, flexGrow: 1 }}
-              onClick={() => navigate("/")}>
-              <CodeIcon sx={{ fontSize: 28, color: "primary.main" }} />
-              <Typography
-                variant="h6"
-                noWrap
-                sx={{
-                  fontWeight: 700,
-                  background: "linear-gradient(45deg, #2563EB, #059669)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}>
-                CodeMentor AI
-              </Typography>
-            </LogoContainer>
-
-            {/* Desktop menu */}
-            <Box
-              sx={{
-                flexGrow: 1,
-                display: { xs: "none", md: "flex" },
-                ml: 4,
-                gap: 1,
-              }}>
-              {menuItems.map((item) => (
-                <NavButton
-                  key={item.title}
-                  onClick={() => {
-                    handleCloseNavMenu();
-                    navigate(item.path);
-                  }}
-                  startIcon={item.icon}>
-                  {item.title}
-                </NavButton>
-              ))}
-            </Box>
-
-            {/* User menu */}
-            <Box
-              sx={{
-                flexGrow: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-              }}>
-              <ThemeToggle
-                mode={theme.palette.mode}
-                onToggle={toggleColorMode}
-              />
-              {currentUser ? (
-                <>
-                  <Tooltip title="Open settings" arrow>
-                    <StyledAvatar
-                      onClick={handleOpenUserMenu}
-                      alt={currentUser?.name || "User"}
-                      src={currentUser?.avatar}>
-                      {!currentUser?.avatar && (currentUser?.name?.[0] || "U")}
-                    </StyledAvatar>
-                  </Tooltip>
-                  <Menu
-                    sx={{ mt: "45px" }}
-                    anchorEl={anchorElUser}
-                    anchorOrigin={{
-                      vertical: "top",
-                      horizontal: "right",
-                    }}
-                    keepMounted
-                    transformOrigin={{
-                      vertical: "top",
-                      horizontal: "right",
-                    }}
-                    open={Boolean(anchorElUser)}
-                    onClose={handleCloseUserMenu}>
-                    <MenuItem onClick={() => navigate("/dashboard")}>
-                      <ListItemIcon>
-                        <DashboardIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>Dashboard</ListItemText>
-                    </MenuItem>
-                    <MenuItem onClick={() => navigate("/settings")}>
-                      <ListItemIcon>
-                        <SettingsIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>Settings</ListItemText>
-                    </MenuItem>
-                    <Divider />
-                    <MenuItem onClick={handleLogout}>
-                      <ListItemIcon>
-                        <LogoutIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText>Logout</ListItemText>
-                    </MenuItem>
-                  </Menu>
-                </>
-              ) : (
-                <NavButton
-                  variant="contained"
-                  onClick={() => navigate("/login")}
-                  startIcon={<AccountIcon />}>
-                  Sign In
-                </NavButton>
-              )}
-            </Box>
-          </Toolbar>
-        </Container>
-      </StyledAppBar>
-
-      {/* Notifications Menu */}
-      <Menu
-        anchorEl={notificationsAnchor}
-        open={Boolean(notificationsAnchor)}
-        onClose={handleNotificationsClose}
-        onClick={handleNotificationsClose}
-        PaperProps={{
-          elevation: 0,
-          sx: {
-            mt: 1.5,
-            width: 360,
-            maxHeight: "80vh",
-            overflow: "auto",
-          },
-        }}>
-        <Box sx={{ p: 2, pb: 1 }}>
-          <Typography variant="h6" color="text.primary">
-            Notifications
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            You have 3 new notifications
-          </Typography>
-        </Box>
-        <Divider />
-        <List sx={{ p: 0 }}>
-          <ListItem>
-            <ListItemText
-              primary="New Achievement Unlocked!"
-              secondary="You've completed your first challenge"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemText
-              primary="Code Review Available"
-              secondary="Your recent submission has been reviewed"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemText
-              primary="Learning Milestone"
-              secondary="You're making great progress!"
-            />
-          </ListItem>
-        </List>
-      </Menu>
-
-      {/* Mobile drawer */}
-      <Drawer
-        variant="temporary"
-        anchor="left"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: "block", md: "none" },
-          "& .MuiDrawer-paper": {
-            width: 280,
-            background:
-              theme.palette.mode === "dark"
-                ? "rgba(17, 25, 40, 0.95)"
-                : "rgba(255, 255, 255, 0.95)",
-            backdropFilter: "blur(20px)",
-          },
-        }}>
-        <Box sx={{ p: 2 }}>
-          <LogoContainer onClick={() => navigate("/")}>
-            <CodeIcon sx={{ fontSize: 32, color: "primary.main" }} />
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 700,
-                background: "linear-gradient(45deg, #2563EB, #059669)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}>
-              CodeMentor AI
-            </Typography>
-          </LogoContainer>
-        </Box>
-        <Divider />
-        <List>
-          {menuItems.map((item) => (
-=======
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -521,42 +133,31 @@ const Navbar = () => {
         {isAuthenticated && (
           <>
             <Divider />
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
             <ListItem
-              key={item.title}
+              button
               onClick={() => {
-                navigate(item.path);
+                handleLogout();
                 handleDrawerToggle();
               }}
               sx={{
-                borderRadius: 2,
-                mx: 1,
-                my: 0.5,
-                transition: "all 0.2s ease",
                 "&:hover": {
-                  backgroundColor: "action.hover",
-                  transform: "translateX(4px)",
+                  backgroundColor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.08)"
+                      : "rgba(0, 0, 0, 0.04)",
                 },
               }}>
-              <ListItemIcon sx={{ color: "primary.main" }}>
-                {item.icon}
+              <ListItemIcon sx={{ color: theme.palette.error.main }}>
+                <LogoutIcon />
               </ListItemIcon>
-              <ListItemText
-                primary={item.title}
-                primaryTypographyProps={{
-                  fontWeight: 600,
-                }}
-              />
+              <ListItemText primary="Logout" />
             </ListItem>
-          ))}
-        </List>
-      </Drawer>
-
-<<<<<<< HEAD
-      {/* Main content spacing */}
-      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }} />
+          </>
+        )}
+      </List>
     </Box>
-=======
+  );
+
   return (
     <>
       <AppBar
@@ -714,7 +315,6 @@ const Navbar = () => {
       </Box>
       <Toolbar />
     </>
->>>>>>> 7f8f4cf10e81592f512281552bd44bd45ba50813
   );
 };
 
