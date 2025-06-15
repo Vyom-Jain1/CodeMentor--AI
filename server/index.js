@@ -4,24 +4,23 @@ const morgan = require("morgan");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
-const validateEnv = require("./config/env");
-const asyncHandler = require("./middleware/async");
-const errorHandler = require("./middleware/errorHandler");
 const path = require("path");
 const compression = require("compression");
 const helmet = require("helmet");
 
-// Load environment variables
+// Load environment variables first
 const result = dotenv.config();
 if (result.error) {
   console.error("Error loading .env file:", result.error);
-} else {
-  console.log("Environment variables loaded successfully");
-  console.log("MONGO_URI:", process.env.MONGO_URI ? "Set" : "Not Set");
+  console.log("Using default environment variables");
 }
 
-// Validate environment variables
-validateEnv();
+// Set default values for required environment variables
+process.env.NODE_ENV = process.env.NODE_ENV || "development";
+process.env.PORT = process.env.PORT || "5000";
+process.env.JWT_SECRET = process.env.JWT_SECRET || "fallback-jwt-secret-key";
+process.env.JWT_EXPIRE = process.env.JWT_EXPIRE || "30d";
+process.env.MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/codementor";
 
 // Connect to database (only in non-test environment)
 if (process.env.NODE_ENV !== "test") {
@@ -31,14 +30,37 @@ if (process.env.NODE_ENV !== "test") {
 // Create Express app
 const app = express();
 
+// Trust proxy for rate limiting
+app.set('trust proxy', 1);
+
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-frontend-domain.com'] 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 app.use(compression());
-app.use(helmet());
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false
+}));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV 
+  });
+});
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -46,7 +68,7 @@ const userRoutes = require("./routes/users");
 const problemRoutes = require("./routes/problems");
 const aiRoutes = require("./routes/ai");
 const codeExecutionRoutes = require("./routes/codeExecution");
-const testRoutes = require("./routes/test");
+const progressRoutes = require("./routes/progress");
 
 // Use routes
 app.use("/api/auth", authRoutes);
@@ -54,10 +76,61 @@ app.use("/api/users", userRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/code", codeExecutionRoutes);
-app.use("/api/test", testRoutes);
+app.use("/api/progress", progressRoutes);
 
-// Error handling middleware
-app.use(errorHandler);
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const errors = Object.values(err.errors).map(e => e.message);
+    return res.status(400).json({
+      success: false,
+      error: 'Validation Error',
+      details: errors
+    });
+  }
+  
+  // Mongoose duplicate key error
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue)[0];
+    return res.status(400).json({
+      success: false,
+      error: `${field} already exists`
+    });
+  }
+  
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid token'
+    });
+  }
+  
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      success: false,
+      error: 'Token expired'
+    });
+  }
+  
+  // Default error
+  res.status(err.statusCode || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found'
+  });
+});
 
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {
@@ -78,30 +151,30 @@ if (process.env.NODE_ENV !== "test") {
     );
   });
 
-  // --- Socket.io Real-time Collaboration ---
+  // Socket.io Real-time Collaboration
   const { Server } = require("socket.io");
   const io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: process.env.NODE_ENV === 'production' 
+        ? ['https://your-frontend-domain.com'] 
+        : ['http://localhost:3000', 'http://127.0.0.1:3000'],
       methods: ["GET", "POST"],
+      credentials: true
     },
   });
 
   io.on("connection", (socket) => {
     console.log("A user connected: " + socket.id);
 
-    // Join a collaboration room
     socket.on("joinRoom", (roomId) => {
       socket.join(roomId);
       socket.to(roomId).emit("userJoined", socket.id);
     });
 
-    // Handle code changes
     socket.on("codeChange", ({ roomId, code }) => {
       socket.to(roomId).emit("codeUpdate", code);
     });
 
-    // Handle chat messages (optional)
     socket.on("chatMessage", ({ roomId, message }) => {
       socket.to(roomId).emit("chatMessage", { user: socket.id, message });
     });
@@ -110,7 +183,6 @@ if (process.env.NODE_ENV !== "test") {
       console.log("User disconnected: " + socket.id);
     });
   });
-  // --- End Socket.io ---
 
   // Handle unhandled promise rejections
   process.on("unhandledRejection", (err) => {

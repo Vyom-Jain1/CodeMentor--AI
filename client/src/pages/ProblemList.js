@@ -7,12 +7,7 @@ import {
   Grid,
   Box,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
   Button,
-  LinearProgress,
   Alert,
   useTheme,
   List,
@@ -20,147 +15,119 @@ import {
   ListItemText,
   ListItemIcon,
   Divider,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import {
-  ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   PlayArrow as PlayArrowIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
 } from "@mui/icons-material";
 import { problemsAPI } from "../services/api";
-
-const INITIAL_CATEGORIES = [
-  {
-    title: "Arrays",
-    description: "Learn Array Data Structure",
-    topics: [
-      {
-        title: "Easy",
-        problems: [],
-      },
-      {
-        title: "Medium",
-        problems: [],
-      },
-      {
-        title: "Hard",
-        problems: [],
-      },
-    ],
-  },
-  {
-    title: "Strings",
-    description: "Learn String Data Structure",
-    topics: [
-      {
-        title: "Basic",
-        problems: [],
-      },
-      {
-        title: "Pattern Matching",
-        problems: [],
-      },
-    ],
-  },
-  {
-    title: "Linked Lists",
-    description: "Learn Linked List Data Structure",
-    topics: [
-      {
-        title: "Singly Linked List",
-        problems: [],
-      },
-      {
-        title: "Doubly Linked List",
-        problems: [],
-      },
-    ],
-  },
-  {
-    title: "Stacks & Queues",
-    description: "Stack and queue data structures and their applications",
-    problems: [],
-  },
-  {
-    title: "Trees",
-    description: "Binary trees, BST, and tree traversal algorithms",
-    problems: [],
-  },
-  {
-    title: "Graphs",
-    description: "Graph algorithms and traversal techniques",
-    problems: [],
-  },
-  {
-    title: "Dynamic Programming",
-    description: "DP patterns and optimization problems",
-    problems: [],
-  },
-  {
-    title: "Greedy",
-    description: "Greedy algorithms and optimization",
-    problems: [],
-  },
-];
+import { useAuth } from "../context/AuthContext";
 
 const ProblemList = () => {
-  const [categoriesState, setCategoriesState] = useState(INITIAL_CATEGORIES);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [problems, setProblems] = useState([]);
+  const [filteredProblems, setFilteredProblems] = useState([]);
+  const [filters, setFilters] = useState({
+    difficulty: "",
+    category: "",
+    search: "",
+  });
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     fetchProblems();
+    fetchCategories();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [problems, filters]);
 
   const fetchProblems = async () => {
     try {
-      const response = await problemsAPI.getAllProblems();
-      const problemsData = response.data.data || [];
-
-      // Categorize problems by difficulty and topic
-      const categorizedProblems = INITIAL_CATEGORIES.map((category) => {
-        const categoryProblems = problemsData.filter(
-          (problem) => problem.category === category.title
-        );
-
-        // Handle categories with topics
-        if (category.topics && Array.isArray(category.topics)) {
-          const updatedTopics = category.topics.map((topic) => ({
-            ...topic,
-            problems: categoryProblems.filter(
-              (problem) =>
-                problem.difficulty.toLowerCase() ===
-                  topic.title.toLowerCase() || problem.topic === topic.title
-            ),
-          }));
-
-          return {
-            ...category,
-            topics: updatedTopics,
-          };
-        }
-
-        // Handle categories without topics
-        return {
-          ...category,
-          problems: categoryProblems,
-        };
-      });
-
-      setCategoriesState(categorizedProblems);
-      setLoading(false);
+      setLoading(true);
+      const { data } = await problemsAPI.getAllProblems();
+      
+      if (data.success) {
+        setProblems(data.data || []);
+      } else {
+        setError("Failed to fetch problems");
+      }
     } catch (err) {
       console.error("Error fetching problems:", err);
       setError("Failed to fetch problems. Please try again later.");
+    } finally {
       setLoading(false);
     }
   };
 
-  const getTopicProgress = (problems) => {
-    const solved = problems.filter((p) => p.status === "solved").length;
-    return (solved / problems.length) * 100 || 0;
+  const fetchCategories = async () => {
+    try {
+      const { data } = await problemsAPI.getCategories();
+      if (data.success) {
+        setCategories(data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...problems];
+
+    if (filters.difficulty) {
+      filtered = filtered.filter(p => p.difficulty === filters.difficulty);
+    }
+
+    if (filters.category) {
+      filtered = filtered.filter(p => p.category === filters.category);
+    }
+
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(searchLower) ||
+        p.description.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredProblems(filtered);
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const isProblemSolved = (problemId) => {
+    return user?.progress?.completedProblems?.some(p => 
+      typeof p === 'string' ? p === problemId : p._id === problemId
+    ) || false;
+  };
+
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'easy': return 'success';
+      case 'medium': return 'warning';
+      case 'hard': return 'error';
+      default: return 'default';
+    }
   };
 
   if (loading) {
@@ -181,6 +148,13 @@ const ProblemList = () => {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Alert severity="error">{error}</Alert>
+        <Button 
+          variant="contained" 
+          onClick={fetchProblems} 
+          sx={{ mt: 2 }}
+        >
+          Retry
+        </Button>
       </Container>
     );
   }
@@ -192,109 +166,162 @@ const ProblemList = () => {
         component="h1"
         gutterBottom
         sx={{ fontWeight: 700, mb: 4 }}>
-        DSA Problem Sheet
+        DSA Problem Collection
       </Typography>
 
-      <Grid container spacing={3}>
-        {categoriesState.map((category, index) => (
-          <Grid item xs={12} key={index}>
-            <Paper sx={{ overflow: "hidden", borderRadius: 2 }}>
-              <Box sx={{ p: 3, bgcolor: "background.paper" }}>
-                <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                  {category.title}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{ mb: 3 }}>
-                  {category.description}
-                </Typography>
-
-                {category.topics ? (
-                  // Render topics if they exist
-                  category.topics.map((topic, topicIndex) => (
-                    <Box key={topicIndex} sx={{ mb: 3 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
-                        {topic.title}
-                      </Typography>
-                      <List>
-                        {topic.problems.map((problem, problemIndex) => (
-                          <React.Fragment key={problemIndex}>
-                            <ListItem
-                              button
-                              onClick={() =>
-                                navigate(`/problems/${problem._id}`)
-                              }
-                              sx={{
-                                borderRadius: 1,
-                                "&:hover": { bgcolor: "action.hover" },
-                              }}>
-                              <ListItemIcon>
-                                {problem.status === "solved" ? (
-                                  <CheckCircleIcon color="success" />
-                                ) : (
-                                  <RadioButtonUncheckedIcon />
-                                )}
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={problem.title}
-                                secondary={`Difficulty: ${problem.difficulty}`}
-                              />
-                              <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<PlayArrowIcon />}
-                                size="small">
-                                Solve
-                              </Button>
-                            </ListItem>
-                            <Divider component="li" />
-                          </React.Fragment>
-                        ))}
-                      </List>
-                    </Box>
-                  ))
-                ) : (
-                  // Render problems directly if no topics
-                  <List>
-                    {category.problems.map((problem, problemIndex) => (
-                      <React.Fragment key={problemIndex}>
-                        <ListItem
-                          button
-                          onClick={() => navigate(`/problems/${problem._id}`)}
-                          sx={{
-                            borderRadius: 1,
-                            "&:hover": { bgcolor: "action.hover" },
-                          }}>
-                          <ListItemIcon>
-                            {problem.status === "solved" ? (
-                              <CheckCircleIcon color="success" />
-                            ) : (
-                              <RadioButtonUncheckedIcon />
-                            )}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={problem.title}
-                            secondary={`Difficulty: ${problem.difficulty}`}
-                          />
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<PlayArrowIcon />}
-                            size="small">
-                            Solve
-                          </Button>
-                        </ListItem>
-                        <Divider component="li" />
-                      </React.Fragment>
-                    ))}
-                  </List>
-                )}
-              </Box>
-            </Paper>
+      {/* Filters */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <FilterIcon sx={{ mr: 1 }} />
+          <Typography variant="h6">Filters</Typography>
+        </Box>
+        
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              placeholder="Search problems..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
           </Grid>
-        ))}
-      </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Difficulty</InputLabel>
+              <Select
+                value={filters.difficulty}
+                label="Difficulty"
+                onChange={(e) => handleFilterChange('difficulty', e.target.value)}
+              >
+                <MenuItem value="">All Difficulties</MenuItem>
+                <MenuItem value="easy">Easy</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="hard">Hard</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={filters.category}
+                label="Category"
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+              >
+                <MenuItem value="">All Categories</MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {category}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setFilters({ difficulty: "", category: "", search: "" })}
+              sx={{ height: "56px" }}
+            >
+              Clear Filters
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Problems List */}
+      <Paper sx={{ overflow: "hidden", borderRadius: 2 }}>
+        <Box sx={{ p: 3, bgcolor: "background.paper" }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+            Problems ({filteredProblems.length})
+          </Typography>
+          
+          {filteredProblems.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography variant="h6" color="text.secondary">
+                No problems found
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Try adjusting your filters or search terms
+              </Typography>
+            </Box>
+          ) : (
+            <List>
+              {filteredProblems.map((problem, index) => (
+                <React.Fragment key={problem._id}>
+                  <ListItem
+                    sx={{
+                      borderRadius: 1,
+                      "&:hover": { bgcolor: "action.hover" },
+                      py: 2,
+                    }}>
+                    <ListItemIcon>
+                      {isProblemSolved(problem._id) ? (
+                        <CheckCircleIcon color="success" />
+                      ) : (
+                        <RadioButtonUncheckedIcon />
+                      )}
+                    </ListItemIcon>
+                    
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Typography variant="h6" component="span">
+                            {problem.title}
+                          </Typography>
+                          <Chip
+                            label={problem.difficulty}
+                            color={getDifficultyColor(problem.difficulty)}
+                            size="small"
+                          />
+                          <Chip
+                            label={problem.category}
+                            variant="outlined"
+                            size="small"
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 1 }}
+                        >
+                          {problem.description?.substring(0, 150)}
+                          {problem.description?.length > 150 ? "..." : ""}
+                        </Typography>
+                      }
+                    />
+                    
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<PlayArrowIcon />}
+                      onClick={() => navigate(`/problems/${problem._id}`)}
+                      sx={{ ml: 2 }}
+                    >
+                      {isProblemSolved(problem._id) ? "Review" : "Solve"}
+                    </Button>
+                  </ListItem>
+                  
+                  {index < filteredProblems.length - 1 && <Divider component="li" />}
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </Box>
+      </Paper>
     </Container>
   );
 };
