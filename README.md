@@ -1,175 +1,134 @@
-# CodeMentor AI - DSA Learning Platform
+# CodeMentor - DSA Learning Platform
 
-A modern, AI-powered platform for learning Data Structures and Algorithms with real-time code execution, personalized feedback, and interactive learning paths.
+A comprehensive platform for learning Data Structures and Algorithms with AI-powered assistance.
 
-## 🌟 Features
+## Features
 
-- **AI-Powered Learning**
+- User authentication and authorization
+- DSA problem collection with varying difficulty levels
+- AI-powered hints and explanations using Ollama
+- Progress tracking and learning paths
+- Code submission and evaluation
+- User profiles with statistics
+- Responsive design
 
-  - Intelligent code analysis and suggestions
-  - Personalized learning paths
-  - Real-time hints and explanations
-  - Code quality assessment
-  - Performance optimization tips
+## Tech Stack
 
-- **Interactive Code Editor**
+### Backend
 
-  - Monaco Editor integration
-  - Multiple language support
-  - Real-time code execution
-  - Syntax highlighting and error detection
-
-- **Problem Management**
-
-  - Categorized problem sets
-  - Difficulty levels (Easy, Medium, Hard)
-  - Progress tracking
-  - Achievement system
-  - Company-specific problems
-  - Source attribution
-
-- **Real-time Collaboration**
-
-  - WebSocket-based live coding
-  - Chat functionality
-  - Code sharing
-  - Discussion forum
-
-- **User Management**
-  - JWT authentication
-  - Profile customization
-  - Progress tracking
-  - Achievement badges
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js (v14 or higher)
+- Node.js
+- Express.js
 - MongoDB
-- npm or yarn
-- Ollama (for AI features) or OpenAI API key
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/yourusername/codementor-ai.git
-   cd codementor-ai
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   # Install root dependencies
-   npm install
-
-   # Install client dependencies
-   cd client && npm install
-
-   # Install server dependencies
-   cd ../server && npm install
-   ```
-
-3. **Environment Setup**
-
-   ```bash
-   # Copy example environment file
-   cp .env.example .env
-
-   # Edit .env with your configuration
-   nano .env
-   ```
-
-4. **Start the development servers**
-
-   ```bash
-   # Start both client and server
-   npm run dev
-
-   # Or start separately:
-   # Terminal 1 - Client
-   cd client && npm start
-
-   # Terminal 2 - Server
-   cd server && npm run dev
-   ```
-
-5. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000/api
-
-## 🛠️ Tech Stack
+- JWT Authentication
+- Ollama AI Integration
 
 ### Frontend
 
 - React
 - Redux Toolkit
 - Material-UI
-- Monaco Editor
-- Socket.IO Client
 - React Router
 - Axios
 
-### Backend
+## Prerequisites
 
-- Node.js
-- Express
+- Node.js (v14 or higher)
 - MongoDB
-- Mongoose
-- Socket.IO
-- JWT Authentication
-- Hugging Face API
+- Ollama (for AI features)
 
-## 🔧 Configuration
+## Installation
 
-The application can be configured using environment variables. See [.env.example](.env.example) for all available options.
-
-Key configurations:
-
-- `NODE_ENV`: Environment (development/production)
-- `PORT`: Server port
-- `MONGO_URI`: MongoDB connection string
-- `JWT_SECRET`: JWT signing key
-- `HF_API_KEY`: Hugging Face API key
-- `CORS_ORIGIN`: Allowed CORS origin
-
-## 🚀 Deployment
-
-### Database Options
-
-- MongoDB Atlas (Recommended)
-- PlanetScale (MySQL)
-- Supabase (PostgreSQL)
-
-### Backend Deployment (Railway)
-
-1. Create a new project on Railway
-2. Link your GitHub repository
-3. Set environment variables
-4. Deploy using the provided `railway.json`
-
-### Frontend Deployment (Vercel/Netlify)
-
-1. Push frontend to a separate repo or subfolder
-2. Connect to Vercel or Netlify
-3. Set `REACT_APP_API_URL` to your backend URL
-
-## 🧪 Testing
+1. Clone the repository:
 
 ```bash
-# Run frontend tests
-cd client && npm test
+git clone https://github.com/yourusername/codementor.git
+cd codementor
+```
 
-# Run backend tests
-cd server && npm test
+2. Install Ollama:
 
-# Run all tests
+   - Visit [Ollama's official website](https://ollama.ai) and follow the installation instructions for your operating system
+   - Pull the CodeLlama model:
+
+   ```bash
+   ollama pull codellama
+   ```
+
+3. Install backend dependencies:
+
+```bash
+cd server
+npm install
+```
+
+4. Install frontend dependencies:
+
+```bash
+cd ../client
+npm install
+```
+
+5. Create environment files:
+   - Copy `.env.example` to `.env` in the server directory
+   - Update the environment variables with your configuration:
+     ```
+     OLLAMA_API=http://localhost:11434/api
+     OLLAMA_MODEL=codellama
+     ```
+
+## Running the Application
+
+1. Start Ollama:
+
+   ```bash
+   ollama serve
+   ```
+
+2. Start the backend server:
+
+   ```bash
+   cd server
+   npm run dev
+   ```
+
+3. Start the frontend development server:
+   ```bash
+   cd client
+   npm start
+   ```
+
+The application will be available at `http://localhost:3000`
+
+## Testing
+
+Run backend tests:
+
+```bash
+cd server
 npm test
 ```
 
-## 🤝 Contributing
+## API Documentation
+
+### Authentication Endpoints
+
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user
+
+### Problem Endpoints
+
+- `GET /api/problems` - Get all problems
+- `GET /api/problems/:id` - Get problem by ID
+- `POST /api/problems/:id/submit` - Submit solution
+- `GET /api/problems/:id/hints` - Get AI hints
+
+### AI Endpoints
+
+- `POST /api/ai/explain` - Get AI explanation
+- `POST /api/ai/hints/:id` - Get AI hints for problem
+
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -177,17 +136,12 @@ npm test
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- [Material-UI](https://mui.com/) for the beautiful UI components
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) for the code editor
-- [Hugging Face](https://huggingface.co/) for the AI capabilities
-- All contributors who have helped this project grow
-
-## 📞 Support
-
-For support, email support@codementor.ai or join our Discord server.
+- Ollama for providing the AI capabilities
+- Material-UI for the component library
+- All contributors who have helped shape this project

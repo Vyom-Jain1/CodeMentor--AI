@@ -17,7 +17,7 @@ import {
   Chip,
   LinearProgress,
 } from "@mui/material";
-import { progressAPI } from "../services/api";
+import axios from "axios";
 
 const categories = [
   {
@@ -61,12 +61,15 @@ const LearningPath = () => {
   const fetchProgress = async () => {
     try {
       setLoading(true);
-      const response = await progressAPI.getProgress();
-      setProgress(response.data.data.progress);
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:5000/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProgress(response.data.progress);
 
       // Calculate active step based on completed problems
       const completedCategories = new Set(
-        response.data.data.progress.completedProblems.map((p) => p.category)
+        response.data.progress.completedProblems.map((p) => p.category)
       );
       const currentStep = categories.findIndex(
         (category) =>

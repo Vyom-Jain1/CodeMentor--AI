@@ -35,7 +35,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { problemsAPI } from "../services/api";
 
 const AnalyticsDashboard = () => {

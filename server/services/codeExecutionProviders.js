@@ -1,4 +1,8 @@
+const CodeRunner = require("./codeRunner");
 const axios = require("axios");
+
+const codeRunner = new CodeRunner();
+codeRunner.initialize();
 
 // Piston API Provider
 async function pistonProvider(code, language, input = "") {
@@ -27,9 +31,18 @@ async function pistonProvider(code, language, input = "") {
   throw new Error("Invalid response from Piston API");
 }
 
-// Main function to run code
+// Main function to select provider
 async function runCode(provider, code, language, input = "") {
-  return pistonProvider(code, language, input);
+  switch (provider) {
+    case "docker":
+      return codeRunner.runCode(code, language, input, "docker");
+    case "local":
+      return codeRunner.runCode(code, language, input, "local");
+    case "piston":
+      return pistonProvider(code, language, input);
+    default:
+      throw new Error("Unknown code execution provider");
+  }
 }
 
 module.exports = {

@@ -10,7 +10,7 @@ const { protect } = require("../middleware/auth");
 router.post(
   "/register",
   [
-    check("name", "Name is required").not().isEmpty(),
+    check("username", "Username is required").not().isEmpty(),
     check("email", "Please include a valid email").isEmail(),
     check(
       "password",
@@ -38,18 +38,8 @@ router.post(
 router.get("/me", protect, getMe);
 
 // @route   GET api/auth/logout
-// @desc    Log user out
+// @desc    Logout user
 // @access  Private
 router.get("/logout", protect, logout);
-
-// @route   GET api/auth/check
-// @desc    Check authentication status
-// @access  Public
-router.get("/check", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Auth check endpoint is working",
-  });
-});
 
 module.exports = router;
